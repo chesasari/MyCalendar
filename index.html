@@ -1,68 +1,152 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>出社場所カレンダー - 4月</title>
+    <title>出社場所カレンダー - Premium Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Noto+Sans+JP:wght@300;400;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=Noto+Sans+JP:wght@400;500;700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="/src/style.css">
 </head>
+
 <body>
-    <div id="app">
-        <header>
-            <div class="header-content">
-                <h1>出社場所 <span>4月</span></h1>
-                <div class="actions">
-                    <button id="add-to-calendar" class="btn-primary">
-                        <span class="icon">📅</span> カレンダーに登録
-                    </button>
-                    <button id="notification-toggle" class="btn-secondary">
-                        <span class="icon">🔔</span> 通知設定
-                    </button>
+    <div id="app" class="dashboard">
+        <!-- Sidebar (Visible mainly on Desktop) -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>出社場所カレンダー</h2>
+            </div>
+
+            <div class="mini-calendar-section">
+                <div class="mini-calendar-header">
+                    <button class="nav-btn prev-month">＜</button>
+                    <span class="mini-month-display">4月 2026</span>
+                    <button class="nav-btn next-month">＞</button>
+                </div>
+                <div class="mini-calendar-grid-header">
+                    <div>日</div>
+                    <div>月</div>
+                    <div>火</div>
+                    <div>水</div>
+                    <div>木</div>
+                    <div>金</div>
+                    <div>土</div>
+                </div>
+                <div id="mini-calendar-body" class="mini-calendar-grid"></div>
+            </div>
+
+            <div class="legend-section">
+                <h3>場所の凡例</h3>
+                <ul class="legend-list">
+                    <li><span class="legend-dot dot-office"></span> 本社</li>
+                    <li><span class="legend-dot dot-remote"></span> 在宅</li>
+                    <li><span class="legend-dot dot-other"></span> ラーニングセンター</li>
+                </ul>
+            </div>
+
+            <div class="quick-links-section">
+                <h3>クイックリンク</h3>
+                <div class="quick-links-grid">
+                    <a href="https://www.enavi-ts.net/ts-h-staff/Staff/login.aspx?ID=Ve4ctWhUz" target="_blank"
+                        class="quick-link-btn">e-navi</a>
+                    <a href="https://attend.rplearn.net/" target="_blank" class="quick-link-btn">勤怠打刻</a>
+                    <a href="https://hnfencer.rakurakuhanbai.jp/ggutk9a/top/main" target="_blank"
+                        class="quick-link-btn">日報</a>
                 </div>
             </div>
-        </header>
-        
-        <main>
-            <div class="calendar-container">
-                <div class="calendar-header">
-                    <div class="day-label">日</div>
-                    <div class="day-label">月</div>
-                    <div class="day-label">火</div>
-                    <div class="day-label">水</div>
-                    <div class="day-label">木</div>
-                    <div class="day-label">金</div>
-                    <div class="day-label">土</div>
+
+            <div id="admin-section" class="quick-links-section" style="margin-top: 2rem;">
+                <h3>情報更新・設定</h3>
+                <div class="quick-links-grid">
+                    <label class="quick-link-btn" style="border-color: var(--neon-cyan); color: var(--neon-cyan); cursor: pointer; text-align: center;">
+                        🔄 Excelからデータ登録
+                        <input type="file" id="excel-upload" accept=".xlsx" style="display: none;">
+                    </label>
+                    <button id="btn-theme-toggle" class="quick-link-btn" style="border-color: #8b5cf6; color: #8b5cf6; cursor: pointer;">
+                        🎨 背景色を着せ替え
+                    </button>
+                    <button id="btn-clear-data" class="quick-link-btn" style="border-color: var(--text-muted); color: var(--text-muted); cursor: pointer;">
+                        🗑️ データ全リセット
+                    </button>
                 </div>
-                <div id="calendar-body" class="calendar-grid">
-                    <!-- JS will populate -->
+                <div id="update-status" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem; text-align: center;"></div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="main-header">
+                <h2 class="main-month-display">4月 2026</h2>
+                <div class="month-nav-desktop">
+                    <button class="nav-btn prev-month">＜</button>
+                    <button class="nav-btn next-month">＞</button>
+                </div>
+            </header>
+
+            <div class="cards-section">
+                <div id="card-today" class="status-card today-card">
+                    <div class="card-label">今日の出社場所</div>
+                    <div class="card-value-wrapper">
+                        <div class="status-icon">📍</div>
+                        <div id="today-info" class="card-value">読み込み中...</div>
+                    </div>
+                    <div id="today-links" class="status-links"></div>
+                </div>
+                <div id="card-tomorrow" class="status-card tomorrow-card">
+                    <div class="card-label">明日の出社場所</div>
+                    <div class="card-value-wrapper">
+                        <div class="status-icon">🏠</div>
+                        <div id="tomorrow-info" class="card-value">読み込み中...</div>
+                    </div>
+                    <div id="tomorrow-links" class="status-links"></div>
                 </div>
             </div>
-            
-            <div class="info-card">
-                <h2>今日の出社場所</h2>
-                <div id="today-info" class="today-display">
-                    読み込み中...
+
+            <div class="main-calendar-container">
+                <div class="main-calendar-header">
+                    <div>日</div>
+                    <div>月</div>
+                    <div>火</div>
+                    <div>水</div>
+                    <div>木</div>
+                    <div>金</div>
+                    <div>土</div>
                 </div>
+                <div id="main-calendar-body" class="main-calendar-grid"></div>
             </div>
         </main>
+    </div>
 
-        <div id="notification-modal" class="modal hidden">
-            <div class="modal-content">
-                <h3>通知設定</h3>
-                <p>前日の指定した時間に、翌日の出社場所を通知します。</p>
-                <div class="time-picker">
-                    <input type="time" id="notification-time" value="08:00">
-                </div>
-                <div class="modal-buttons">
-                    <button id="save-notification" class="btn-primary">保存</button>
-                    <button id="close-modal" class="btn-text">キャンセル</button>
-                </div>
+    <!-- Calendar Entry Modal -->
+    <div id="entry-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="modal-date-title" style="margin-bottom: 1rem; color: var(--text-main);"></h3>
+            
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: var(--text-main);">
+                    <input type="checkbox" id="modal-is-paid-leave" style="width: 1.2rem; height: 1.2rem; cursor: pointer;">
+                    <span style="font-weight: 500;">🏝️ 有休（お休みにする）</span>
+                </label>
+            </div>
+            
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">📝 予定メモ・出社場所変更など</label>
+                <input type="text" id="modal-memo" placeholder="例: 午後から半休 / 病院" style="width: 100%; padding: 0.8rem; border-radius: 6px; border: 1px solid var(--border-subtle); background: var(--bg-main); color: var(--text-main); outline: none;">
+            </div>
+            
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <button id="btn-modal-cancel" class="quick-link-btn" style="flex: 1; border-color: var(--text-muted); color: var(--text-muted); cursor: pointer;">キャンセル</button>
+                <button id="btn-modal-save" class="quick-link-btn" style="flex: 1; border-color: var(--neon-cyan); color: var(--neon-cyan); font-weight: bold; cursor: pointer;">保存する</button>
             </div>
         </div>
     </div>
+
+    <!-- SheetJS (Excel Parser in Browser) -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script type="module" src="/src/main.js"></script>
 </body>
 </html>
