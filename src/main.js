@@ -145,7 +145,7 @@ function renderMainCalendar(schedule) {
         
         let dotHTML = '';
         if (isPaidLeave) {
-            dotHTML = `<div class="day-dot dot-other" style="display:flex;align-items:center;justify-content:center;font-size:0.7rem;background:transparent;box-shadow:none;">🏖️</div>`;
+            dotHTML = `<div style="position:absolute; bottom: 2px; font-size:1.8rem; line-height:1; transform:translateY(5px);">🏖️</div>`;
         } else if (displayLocation) {
             dotHTML = `<div class="day-dot ${dotClass}"></div>`;
         }
@@ -167,10 +167,9 @@ function renderMiniCalendar(schedule) {
     
     const todayStr = getTodayStr();
     let firstDay = new Date(currentYear, currentMonth - 1, 1).getDay();
-    if (firstDay === 0) firstDay = 7; // Convert to Mon-Sun
     const lastDate = new Date(currentYear, currentMonth, 0).getDate();
 
-    fillGridBlanks(grid, firstDay - 1, 'mini-day empty');
+    fillGridBlanks(grid, firstDay, 'mini-day empty');
 
     for (let dayNum = 1; dayNum <= lastDate; dayNum++) {
         const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
@@ -242,9 +241,7 @@ function updateCard(id, info, emptyMsg) {
         const links = [];
         if (id === 'today' && !isPaidLeave) {
             links.push({ name: 'e-navi', url: 'https://www.enavi-ts.net/ts-h-staff/Staff/login.aspx?ID=Ve4ctWhUz' });
-            if (isOffice) {
-                links.push({ name: '打刻アプリ', url: 'https://attend.rplearn.net/' });
-            }
+            links.push({ name: '勤怠打刻', url: 'https://attend.rplearn.net/' });
         }
 
         links.forEach(l => {
@@ -394,15 +391,38 @@ function setupThemeToggle() {
     const btn = document.getElementById('btn-theme-toggle');
     if (!btn) return;
     
-    // Switch between default(Dark Neon) and light
+    const themes = ['default', 'sanrio', 'disney'];
+    
+    // Switch themes
     btn.addEventListener('click', () => {
         let currentTheme = document.body.getAttribute('data-theme') || 'default';
-        let nextTheme = currentTheme === 'default' ? 'light' : 'default';
+        if (currentTheme === 'light') currentTheme = 'default';
+        let toggleIndex = (themes.indexOf(currentTheme) + 1) % themes.length;
+        let nextTheme = themes[toggleIndex];
         
         document.body.setAttribute('data-theme', nextTheme);
         localStorage.setItem('appTheme', nextTheme);
+        
+        updateThemeButtonLabel(nextTheme, btn);
     });
+    
+    // Initialize label
+    let initTheme = document.body.getAttribute('data-theme') || 'default';
+    if (initTheme === 'light') {
+        initTheme = 'default';
+        document.body.setAttribute('data-theme', 'default');
+    }
+    updateThemeButtonLabel(initTheme, btn);
+}
 
+function updateThemeButtonLabel(theme, btn) {
+    let name = 'ダークネオン';
+    if (theme === 'sanrio') name = 'サンリオ風';
+    if (theme === 'disney') name = 'ディズニー風';
+    btn.innerHTML = `🎨 着せ替え (${name})`;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
     const clearBtn = document.getElementById('btn-clear-data');
     if (clearBtn) {
         clearBtn.addEventListener('click', () => {
@@ -412,6 +432,5 @@ function setupThemeToggle() {
             }
         });
     }
-}
-
-document.addEventListener('DOMContentLoaded', init);
+    init();
+});

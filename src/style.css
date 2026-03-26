@@ -529,38 +529,97 @@ body {
   transform: translateY(0);
 }
 
-/* Light Theme Variables */
-[data-theme="light"] {
-  --bg-main: #f8fafc;
-  --bg-card: #ffffff;
-  --surface: #f1f5f9;
-  --text-main: #0f172a;
-  --text-muted: #64748b;
-  --text-disabled: #94a3b8;
+/* ==================================
+   Theme: Sanrio Style
+================================== */
+[data-theme="sanrio"] {
+  --bg-main: #fff0f5; /* 背景：パステルピンク */
+  --bg-card: #ffffff; /* カード：白 */
+  --surface: #ffe4e1;
+  --text-main: #554450;
+  --text-muted: #d4a3be;
+  --text-disabled: #ffb6c1;
   
-  --neon-cyan: #0284c7;
-  --neon-cyan-glow: rgba(2, 132, 199, 0.2);
-  --neon-amber: #d97706;
-  --neon-amber-glow: rgba(217, 119, 6, 0.2);
-  --neon-purple: #7c3aed;
-  --neon-purple-glow: rgba(124, 58, 237, 0.2);
-  --neon-green: #059669;
-  --neon-green-glow: rgba(5, 150, 105, 0.2);
+  --neon-cyan: #ff9fd9; /* 本社：濃いめのピンク */
+  --neon-cyan-glow: rgba(255, 159, 217, 0.4);
+  --neon-amber: #ffbba6; /* 在宅：やさしいオレンジピンク */
+  --neon-amber-glow: rgba(255, 187, 166, 0.4);
+  --neon-purple: #dda0dd; 
+  --neon-purple-glow: rgba(221, 160, 221, 0.4);
+  --neon-green: #95ded8; /* ラーニングセンター：パステルブルーグリーン */
+  --neon-green-glow: rgba(149, 222, 216, 0.4);
   
-  --border-subtle: rgba(0, 0, 0, 0.1);
+  --border-subtle: rgba(255, 182, 193, 0.5);
 }
 
-[data-theme="light"] .main-day.today {
+[data-theme="sanrio"] .main-day.today,
+[data-theme="sanrio"] .mini-day.today {
+  color: #fff;
+  background: #ff8fb6;
+  box-shadow: 0 0 20px rgba(255, 143, 182, 0.5);
+}
+[data-theme="sanrio"] .main-day.today .day-num {
   color: #fff;
 }
-[data-theme="light"] .main-day.today .day-num {
-  color: #fff;
-}
-[data-theme="light"] .status-link-btn {
-  background: rgba(0, 0, 0, 0.03);
-  border: 1px solid rgba(0, 0, 0, 0.1);
+[data-theme="sanrio"] .status-link-btn {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 182, 193, 0.5);
   color: var(--text-main);
+  border-radius: 20px;
 }
-[data-theme="light"] .status-link-btn:hover {
-  background: rgba(0, 0, 0, 0.08);
+[data-theme="sanrio"] .status-link-btn:hover {
+  background: #fff;
+  color: #ff69b4;
+  border-color: #ff69b4;
+}
+[data-theme="sanrio"] .status-card {
+  border-radius: 24px;
+}
+
+/* ==================================
+   Theme: Disney Style
+================================== */
+[data-theme="disney"] {
+  --bg-main: #0b1126; /* 夜空のような深い青 */
+  --bg-card: #15224a; 
+  --surface: #1d306b;
+  --text-main: #f5f6ff;
+  --text-muted: #8c9ac9;
+  --text-disabled: #4e5f99;
+  
+  --neon-cyan: #ffcc00; /* 本社：魔法のゴールド */
+  --neon-cyan-glow: rgba(255, 204, 0, 0.4);
+  --neon-amber: #ff3333; /* 在宅：ミッキーレッド */
+  --neon-amber-glow: rgba(255, 51, 51, 0.4);
+  --neon-purple: #bb66ff; 
+  --neon-purple-glow: rgba(187, 102, 255, 0.4);
+  --neon-green: #33ff99; /* ラーセン：ティンカーベルグリーン */
+  --neon-green-glow: rgba(51, 255, 153, 0.4);
+  
+  --border-subtle: rgba(255, 204, 0, 0.2);
+}
+
+[data-theme="disney"] .main-day.today,
+[data-theme="disney"] .mini-day.today {
+  color: #000;
+  background: #ffcc00;
+  box-shadow: 0 0 25px rgba(255, 204, 0, 0.7);
+}
+[data-theme="disney"] .main-day.today .day-num {
+  color: #000;
+}
+[data-theme="disney"] .status-link-btn {
+  background: rgba(255, 204, 0, 0.1);
+  border: 1px solid rgba(255, 204, 0, 0.3);
+  color: #ffcc00;
+}
+[data-theme="disney"] .status-link-btn:hover {
+  background: rgba(255, 204, 0, 0.25);
+  color: #fff;
+  border-color: #ffcc00;
+}
+[data-theme="disney"] .sidebar h2,
+[data-theme="disney"] .main-month-display {
+  font-family: serif;
+  text-shadow: 0 0 10px rgba(255,204,0,0.4);
 }
