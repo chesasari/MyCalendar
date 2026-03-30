@@ -75,22 +75,91 @@ body {
 }
 
 .nav-btn {
-  background: rgba(255, 255, 255, 0.05);
-  border: none;
-  color: var(--text-muted);
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
+  background: rgba(6, 182, 212, 0.1);
+  border: 1.5px solid var(--neon-cyan);
+  color: var(--neon-cyan);
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   display: flex;
   align-items: center;
   justify-content: center;
+  font-weight: 600;
+  font-size: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.nav-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.3) 0%, transparent 70%);
+  transition: left 0.3s;
+  pointer-events: none;
 }
 
 .nav-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--text-main);
+  background: rgba(6, 182, 212, 0.2);
+  border-color: var(--neon-cyan);
+  color: #fff;
+  transform: scale(1.1);
+  box-shadow: 0 0 15px var(--neon-cyan-glow);
+}
+
+.nav-btn:hover::before {
+  left: 100%;
+}
+
+.nav-btn:active {
+  transform: scale(0.95);
+}
+
+.today-btn {
+  background: rgba(139, 92, 246, 0.1);
+  border: 1.5px solid var(--neon-purple);
+  color: var(--neon-purple);
+  padding: 0.5rem 1.2rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  font-weight: 600;
+  font-size: 0.95rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.today-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.3) 0%, transparent 70%);
+  transition: left 0.3s;
+  pointer-events: none;
+}
+
+.today-btn:hover {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: var(--neon-purple);
+  color: #fff;
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
+}
+
+.today-btn:hover::before {
+  left: 100%;
+}
+
+.today-btn:active {
+  transform: scale(0.95);
 }
 
 .mini-calendar-grid-header {
@@ -552,6 +621,46 @@ body {
   --border-subtle: rgba(255, 182, 193, 0.5);
 }
 
+[data-theme="sanrio"] * {
+  font-family: 'M PLUS Rounded 1c', 'Kiwi Maru', sans-serif !important;
+}
+
+[data-theme="sanrio"] {
+  background-image: 
+    radial-gradient(circle at 20px 20px, #ffd1dc 4px, transparent 4px),
+    radial-gradient(circle at 60px 60px, #ffd1dc 4px, transparent 4px);
+  background-size: 80px 80px;
+}
+
+[data-theme="sanrio"] .main-day, 
+[data-theme="sanrio"] .mini-day {
+  background: #fffafa;
+  border: 1px solid #ffe4e1;
+  box-shadow: inset 1px 1px 4px rgba(0,0,0,0.02), 0 3px 6px rgba(0,0,0,0.05);
+  border-radius: 16px;
+  border-bottom: 3px solid #ffe4e1;
+}
+
+[data-theme="sanrio"] .main-calendar-container {
+  background: rgba(255, 255, 255, 0.85);
+  border: 4px solid #fff;
+  border-radius: 24px;
+  box-shadow: 0 8px 16px rgba(255,182,193,0.2);
+  padding: 1.5rem;
+}
+
+[data-theme="sanrio"] .sidebar {
+  background: rgba(255, 240, 245, 0.95);
+  border-right: 2px dashed #ffb6c1;
+}
+
+[data-theme="sanrio"] .status-card {
+  border: 3px dashed #ffb6c1;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  box-shadow: 0 4px 10px rgba(255, 182, 193, 0.3);
+}
+
 [data-theme="sanrio"] .main-day.today,
 [data-theme="sanrio"] .mini-day.today {
   color: #fff;
@@ -571,9 +680,6 @@ body {
   background: #fff;
   color: #ff69b4;
   border-color: #ff69b4;
-}
-[data-theme="sanrio"] .status-card {
-  border-radius: 24px;
 }
 
 /* ==================================
@@ -622,4 +728,194 @@ body {
 [data-theme="disney"] .main-month-display {
   font-family: serif;
   text-shadow: 0 0 10px rgba(255,204,0,0.4);
+}
+
+/* ==================================
+   Theme: おぱんちゅうさぎ (ピンク)
+================================== */
+[data-theme="opanchu1"] {
+  --bg-main: #fce4ec;
+  --bg-sidebar: #f8bbd0;
+  --bg-card: #ffffff;
+  --bg-card-hover: #fce4ec;
+  --surface: #ffffff;
+
+  --text-main: #4a2035;
+  --text-muted: #c2708a;
+  --text-disabled: #f48fb1;
+
+  --neon-cyan: #e91e8c;
+  --neon-cyan-glow: rgba(233, 30, 140, 0.35);
+  --neon-amber: #ff6f91;
+  --neon-amber-glow: rgba(255, 111, 145, 0.35);
+  --neon-purple: #ce93d8;
+  --neon-purple-glow: rgba(206, 147, 216, 0.4);
+  --neon-green: #f06292;
+  --neon-green-glow: rgba(240, 98, 146, 0.35);
+
+  --border-subtle: rgba(233, 30, 140, 0.2);
+}
+
+[data-theme="opanchu1"] body {
+  background-image:
+    radial-gradient(circle at 10px 10px, rgba(233,30,140,0.08) 6px, transparent 6px),
+    radial-gradient(circle at 50px 50px, rgba(255,111,145,0.06) 6px, transparent 6px);
+  background-size: 70px 70px;
+}
+
+[data-theme="opanchu1"] .sidebar {
+  background: #f8bbd0;
+  border-right: 2px dashed #f48fb1;
+}
+
+[data-theme="opanchu1"] .sidebar-header h2 {
+  color: #880e4f;
+}
+
+[data-theme="opanchu1"] .status-card {
+  background: #fff;
+  border: 2px solid #f48fb1;
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(233, 30, 140, 0.15);
+}
+
+[data-theme="opanchu1"] .main-calendar-container {
+  background: rgba(255,255,255,0.9);
+  border: 2px solid #f48fb1;
+  border-radius: 20px;
+  box-shadow: 0 4px 16px rgba(233, 30, 140, 0.12);
+}
+
+[data-theme="opanchu1"] .main-day,
+[data-theme="opanchu1"] .mini-day {
+  border-radius: 50%;
+}
+
+[data-theme="opanchu1"] .main-day.today,
+[data-theme="opanchu1"] .mini-day.today {
+  background: #e91e8c;
+  box-shadow: 0 0 18px rgba(233, 30, 140, 0.5);
+  color: #fff;
+}
+[data-theme="opanchu1"] .main-day.today .day-num { color: #fff; }
+
+[data-theme="opanchu1"] .nav-btn {
+  background: rgba(233, 30, 140, 0.1);
+  color: #e91e8c;
+}
+[data-theme="opanchu1"] .nav-btn:hover {
+  background: rgba(233, 30, 140, 0.2);
+}
+
+[data-theme="opanchu1"] .quick-link-btn {
+  background: rgba(233, 30, 140, 0.05);
+  border-color: #f48fb1;
+  color: #880e4f;
+}
+
+[data-theme="opanchu1"] .status-link-btn {
+  background: rgba(233, 30, 140, 0.05);
+  border: 1px solid #f48fb1;
+  color: #880e4f;
+  border-radius: 20px;
+}
+[data-theme="opanchu1"] .status-link-btn:hover {
+  background: #e91e8c;
+  color: #fff;
+  border-color: #e91e8c;
+}
+
+/* ==================================
+   Theme: おぱんちゅうさぎ (ブルー)
+================================== */
+[data-theme="opanchu2"] {
+  --bg-main: #e3f2fd;
+  --bg-sidebar: #bbdefb;
+  --bg-card: #ffffff;
+  --bg-card-hover: #e3f2fd;
+  --surface: #ffffff;
+
+  --text-main: #0d2a4a;
+  --text-muted: #5c90bb;
+  --text-disabled: #90caf9;
+
+  --neon-cyan: #1565c0;
+  --neon-cyan-glow: rgba(21, 101, 192, 0.35);
+  --neon-amber: #42a5f5;
+  --neon-amber-glow: rgba(66, 165, 245, 0.35);
+  --neon-purple: #7986cb;
+  --neon-purple-glow: rgba(121, 134, 203, 0.4);
+  --neon-green: #26c6da;
+  --neon-green-glow: rgba(38, 198, 218, 0.35);
+
+  --border-subtle: rgba(21, 101, 192, 0.2);
+}
+
+[data-theme="opanchu2"] body {
+  background-image:
+    radial-gradient(circle at 10px 10px, rgba(21,101,192,0.07) 6px, transparent 6px),
+    radial-gradient(circle at 50px 50px, rgba(66,165,245,0.05) 6px, transparent 6px);
+  background-size: 70px 70px;
+}
+
+[data-theme="opanchu2"] .sidebar {
+  background: #bbdefb;
+  border-right: 2px dashed #90caf9;
+}
+
+[data-theme="opanchu2"] .sidebar-header h2 {
+  color: #0d47a1;
+}
+
+[data-theme="opanchu2"] .status-card {
+  background: #fff;
+  border: 2px solid #90caf9;
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(21, 101, 192, 0.15);
+}
+
+[data-theme="opanchu2"] .main-calendar-container {
+  background: rgba(255,255,255,0.9);
+  border: 2px solid #90caf9;
+  border-radius: 20px;
+  box-shadow: 0 4px 16px rgba(21, 101, 192, 0.12);
+}
+
+[data-theme="opanchu2"] .main-day,
+[data-theme="opanchu2"] .mini-day {
+  border-radius: 50%;
+}
+
+[data-theme="opanchu2"] .main-day.today,
+[data-theme="opanchu2"] .mini-day.today {
+  background: #1565c0;
+  box-shadow: 0 0 18px rgba(21, 101, 192, 0.5);
+  color: #fff;
+}
+[data-theme="opanchu2"] .main-day.today .day-num { color: #fff; }
+
+[data-theme="opanchu2"] .nav-btn {
+  background: rgba(21, 101, 192, 0.1);
+  color: #1565c0;
+}
+[data-theme="opanchu2"] .nav-btn:hover {
+  background: rgba(21, 101, 192, 0.2);
+}
+
+[data-theme="opanchu2"] .quick-link-btn {
+  background: rgba(21, 101, 192, 0.05);
+  border-color: #90caf9;
+  color: #0d47a1;
+}
+
+[data-theme="opanchu2"] .status-link-btn {
+  background: rgba(21, 101, 192, 0.05);
+  border: 1px solid #90caf9;
+  color: #0d47a1;
+  border-radius: 20px;
+}
+[data-theme="opanchu2"] .status-link-btn:hover {
+  background: #1565c0;
+  color: #fff;
+  border-color: #1565c0;
 }

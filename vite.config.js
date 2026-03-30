@@ -24,6 +24,6 @@ const apiPlugin = () => ({
 });
 
 export default defineConfig({
-  base: './',
+  base: '/MyCalendar/',
   plugins: [apiPlugin()]
 })
