@@ -1,3 +1,6 @@
+import './style.css';
+
+
 let allSchedule = [];
 let paidLeaves = JSON.parse(localStorage.getItem('paidLeaves') || '{}');
 let currentMonth = new Date().getMonth() + 1;
