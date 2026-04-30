@@ -80,6 +80,7 @@
                 </div>
                 <div id="update-status"
                     style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem; text-align: center;"></div>
+                <div id="current-column-display" style="font-size:0.72rem; color:var(--text-muted); margin-top:0.25rem; text-align:center;"></div>
                 <button id="debug-toggle" style="margin-top: 0.8rem; width: 100%; padding: 0.5rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: var(--text-muted); border-radius: 6px; cursor: pointer; font-size: 0.75rem;">🔍 デバッグ情報</button>
             </div>
             
@@ -160,6 +161,20 @@
                     style="flex: 1; border-color: var(--text-muted); color: var(--text-muted); cursor: pointer;">キャンセル</button>
                 <button id="btn-modal-save" class="quick-link-btn"
                     style="flex: 1; border-color: var(--neon-cyan); color: var(--neon-cyan); font-weight: bold; cursor: pointer;">保存する</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Column Picker Modal -->
+    <div id="column-picker-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 style="margin-bottom: 0.5rem; color: var(--text-main);">📊 月ごとの参照列を設定</h3>
+            <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom: 1rem;">月ごとに使う列を選んでください</p>
+            <div id="column-picker-rows" style="display:flex; flex-direction:column; gap:0.8rem;"></div>
+            <div style="font-size:0.78rem; color:var(--text-muted); margin-top:0.6rem;">※ 設定は次回以降も自動で使われます</div>
+            <div style="display:flex; gap:1rem; margin-top:1.5rem;">
+                <button id="btn-column-cancel" class="quick-link-btn" style="flex:1; border-color:var(--text-muted); color:var(--text-muted); cursor:pointer;">キャンセル</button>
+                <button id="btn-column-confirm" class="quick-link-btn" style="flex:1; border-color:var(--neon-cyan); color:var(--neon-cyan); font-weight:bold; cursor:pointer;">この列で取り込む</button>
             </div>
         </div>
     </div>

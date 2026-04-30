@@ -6,9 +6,13 @@ let paidLeaves = JSON.parse(localStorage.getItem('paidLeaves') || '{}');
 let currentMonth = new Date().getMonth() + 1;
 let currentYear = 2026;
 let debugLogs = [];
+let columnByMonth = JSON.parse(localStorage.getItem('columnByMonth') || '{}');
+let pendingWorkbook = null;
+let pendingSheets = null;
 
 const holidays2026 = [
-    '2026-02-11', '2026-02-23', '2026-03-20', '2026-04-29'
+    '2026-02-11', '2026-02-23', '2026-03-20', '2026-04-29',
+    '2026-05-03', '2026-05-04', '2026-05-05', '2026-05-06',
 ];
 
 function addDebugLog(msg) {
@@ -55,23 +59,22 @@ async function init() {
     }
 
     setupExcelImport();
+    setupColumnPicker();
     setupModal();
+    updateColumnDisplay();
 
-    const today = new Date();
-    if (today.getFullYear() === 2026) {
-        currentMonth = Math.max(2, Math.min(4, today.getMonth() + 1));
-        currentYear = 2026;
+    // 前回見ていた月を復元、なければ今月
+    const savedMonth = parseInt(localStorage.getItem('lastViewedMonth') || '0');
+    if (savedMonth >= 1 && savedMonth <= 12) {
+        currentMonth = savedMonth;
     } else {
-        currentMonth = 3;
-        currentYear = 2026;
+        currentMonth = new Date().getMonth() + 1;
     }
+    currentYear = 2026;
 
-    const prevBtns = document.querySelectorAll('.prev-month');
-    const nextBtns = document.querySelectorAll('.next-month');
-    prevBtns.forEach(btn => btn.addEventListener('click', () => changeMonth(-1)));
-    nextBtns.forEach(btn => btn.addEventListener('click', () => changeMonth(1)));
-    
-    // Today button
+    document.querySelectorAll('.prev-month').forEach(btn => btn.addEventListener('click', () => changeMonth(-1)));
+    document.querySelectorAll('.next-month').forEach(btn => btn.addEventListener('click', () => changeMonth(1)));
+
     const todayBtn = document.getElementById('today-btn');
     if (todayBtn) {
         todayBtn.addEventListener('click', goToToday);
@@ -103,18 +106,15 @@ function changeMonth(delta) {
         currentMonth = 12;
         currentYear--;
     }
+    localStorage.setItem('lastViewedMonth', currentMonth);
     updateCalendars();
 }
 
 function goToToday() {
     const today = new Date();
-    if (today.getFullYear() === 2026) {
-        currentMonth = today.getMonth() + 1;
-        currentYear = 2026;
-    } else {
-        currentMonth = 3;
-        currentYear = 2026;
-    }
+    currentMonth = today.getMonth() + 1;
+    currentYear = today.getFullYear();
+    localStorage.setItem('lastViewedMonth', currentMonth);
     updateCalendars();
 }
 
@@ -364,16 +364,16 @@ function setupExcelImport() {
     uploadInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
+        e.target.value = ''; // 同じファイルを再選択できるようにリセット
 
         debugLogs = [];
         addDebugLog('=== Excelファイル解析を開始 ===');
         addDebugLog(`ファイル名: ${file.name}`);
-        addDebugLog(`ファイルサイズ: ${(file.size / 1024).toFixed(2)} KB`);
 
         const updateStatus = document.getElementById('update-status');
         if (updateStatus) {
             updateStatus.style.color = 'var(--neon-cyan)';
-            updateStatus.innerText = '📁 解析中... しばらくお待ちください';
+            updateStatus.innerText = '📁 列を検出中...';
         }
 
         const reader = new FileReader();
@@ -381,187 +381,287 @@ function setupExcelImport() {
             try {
                 const data = new Uint8Array(evt.target.result);
                 const workbook = window.XLSX.read(data, { type: 'array' });
-                let newSchedule = [];
 
                 addDebugLog(`シート数: ${workbook.SheetNames.length}`);
                 addDebugLog(`シート名: ${workbook.SheetNames.join(', ')}`);
 
-                workbook.SheetNames.forEach((sheetName, sheetIdx) => {
-                    addDebugLog(`\n--- シート ${sheetIdx + 1}: "${sheetName}" を処理中 ---`);
-                    
-                    const sheet = workbook.Sheets[sheetName];
-                    const rows = window.XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", raw: false });
-                    
-                    addDebugLog(`行数: ${rows.length}`);
+                const sheetsInfo = detectSheetsAndColumns(workbook);
+                addDebugLog(`検出シート/月: ${sheetsInfo.map(s => `${s.month}月`).join(', ')}`);
 
-                    let qaColIdx = -1;
-                    let dateColIdx = -1;
-                    let headerRowIdx = -1;
-
-                    // ヘッダー行を探す（最初の30行を検索）
-                    for (let r = 0; r < Math.min(30, rows.length); r++) {
-                        if (!rows[r]) continue;
-                        for (let c = 0; c < rows[r].length; c++) {
-                            const val = String(rows[r][c]).trim().toLowerCase();
-                            
-                            // QA列を探す
-                            if (qaColIdx === -1 && (val.includes('qa') || val.includes('エントリー'))) {
-                                qaColIdx = c;
-                                addDebugLog(`✓ QA列を検出: 列${c} (${String(rows[r][c]).trim()})`);
-                            }
-                            
-                            // 日付列のヘッダー候補を一時保存（後で検証）
-                            if (dateColIdx === -1 && (val.includes('日付') || val.includes('date'))) {
-                                dateColIdx = c;
-                                addDebugLog(`✓ 日付列を検出: 列${c} (${String(rows[r][c]).trim()})`);
-                            }
-                        }
-                        // ヘッダー行を特定
-                        if ((qaColIdx !== -1 || dateColIdx !== -1) && headerRowIdx === -1) {
-                            headerRowIdx = r;
-                            addDebugLog(`✓ ヘッダー行を検出: 行${r + 1}`);
-                        }
-                    }
-                    
-                    // 日付列が「日付」「date」で見つからない場合、実際のデータから推測
-                    if (dateColIdx === -1 && headerRowIdx !== -1) {
-                        addDebugLog(`日付列をデータから推測中...`);
-                        let maxDateCount = -1;
-                        let detectedDateColIdx = -1;
-                        
-                        // 最初の20列をチェック
-                        for (let c = 0; c < Math.min(20, rows[0].length); c++) {
-                            let dateCount = 0;
-                            // ヘッダー行の次の15行をチェック
-                            for (let r = headerRowIdx + 1; r < Math.min(headerRowIdx + 16, rows.length); r++) {
-                                if (!rows[r] || !rows[r][c]) continue;
-                                const cellVal = String(rows[r][c]).trim();
-                                // 日付形式（MM/DD, MM-DD など）が含まれているか
-                                if (/\d{1,2}[\\/\-]\d{1,2}/.test(cellVal)) {
-                                    dateCount++;
-                                }
-                            }
-                            if (dateCount > maxDateCount) {
-                                maxDateCount = dateCount;
-                                detectedDateColIdx = c;
-                            }
-                        }
-                        
-                        if (detectedDateColIdx !== -1) {
-                            dateColIdx = detectedDateColIdx;
-                            addDebugLog(`✓ 日付列を推測検出: 列${dateColIdx} (日付フォーマット数: ${maxDateCount})`);
-                        }
-                    }
-
-                    // QA列が見つからない場合はスキップ
-                    if (qaColIdx === -1) {
-                        addDebugLog(`✗ このシートにQA列が見つかりません`);
-                        return;
-                    }
-                    
-                    if (dateColIdx === -1) {
-                        // A列を試してみる
-                        if (rows[headerRowIdx + 1] && rows[headerRowIdx + 1][0] && String(rows[headerRowIdx + 1][0]).match(/^\d{1,2}[\\/\-]\d{1,2}/)) {
-                            dateColIdx = 0;
-                            addDebugLog(`ⓘ 日付列が明示的に見つかりませんが、A列に日付らしきデータを発見しました`);
-                        } else {
-                            dateColIdx = 1; // デフォルトはB列
-                            addDebugLog(`ⓘ 日付列が見つからないため、B列を使用します`);
-                        }
-                    }
-                    if (headerRowIdx === -1) headerRowIdx = 0;
-
-                    console.log(`Processing with QA column: ${qaColIdx}, Date column: ${dateColIdx}, Header row: ${headerRowIdx}`);
-
-                    let sheetRecords = 0;
-                    let processedRows = 0;
-                    // ヘッダー行以降のデータを処理
-                    for (let i = headerRowIdx + 1; i < rows.length; i++) {
-                        const row = rows[i];
-                        processedRows++;
-                        if (!row || row[dateColIdx] === undefined || row[dateColIdx] === null || row[dateColIdx] === "") continue;
-
-                        let dateStr = "";
-                        const rawDate = row[dateColIdx];
-                        const dateStr_raw = String(rawDate).trim();
-
-                        if (!dateStr_raw) continue;
-
-                        // 日付形式1: シリアル値
-                        if (/^\d+$/.test(dateStr_raw)) {
-                            try {
-                                const serial = parseFloat(dateStr_raw);
-                                if (serial > 0 && serial < 50000) {
-                                    const dt = new Date((serial - 25567) * 86400000);
-                                    dateStr = `2026-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
-                                }
-                            } catch (err) {}
-                        }
-
-                        // 日付形式2-a: YYYY-MM-DD or YYYY/MM/DD
-                        if (!dateStr) {
-                            const m = dateStr_raw.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
-                            if (m) {
-                                dateStr = `${m[1]}-${String(parseInt(m[2])).padStart(2, '0')}-${String(parseInt(m[3])).padStart(2, '0')}`;
-                            }
-                        }
-                        
-                        // 日付形式2-b: MM-DD or MM/DD（括弧や曜日が付いていても対応）
-                        if (!dateStr) {
-                            const m = dateStr_raw.match(/^(\d{1,2})[\/\-](\d{1,2})/);
-                            if (m) {
-                                const month = parseInt(m[1]);
-                                // 10月～12月は2025年、1月～9月は2026年と推定
-                                const year = month >= 10 ? 2025 : 2026;
-                                dateStr = `${year}-${String(month).padStart(2, '0')}-${String(parseInt(m[2])).padStart(2, '0')}`;
-                            }
-                        }
-
-                        if (dateStr) {
-                            const loc = (row[qaColIdx] || "").toString().trim();
-                            if (loc) {
-                                newSchedule.push({ date: dateStr, location: loc });
-                                sheetRecords++;
-                            }
-                        }
-                    }
-                    
-                    addDebugLog(`✓ 処理行数: ${processedRows}, 抽出レコード: ${sheetRecords}`);
-                });
-
-                addDebugLog(`\n=== 合計: ${newSchedule.length} 件のレコードを抽出 ===`);
-
-                if (newSchedule.length > 0) {
-                    localStorage.setItem('allSchedule', JSON.stringify(newSchedule));
-                    addDebugLog(`✓ ローカルストレージに保存しました`);
-                    if (updateStatus) {
-                        updateStatus.style.color = '#10b981';
-                        updateStatus.innerText = `✅ 取り込み成功！( ${newSchedule.length} 件 )`;
-                    }
-                    setTimeout(() => window.location.reload(), 1500);
-                } else {
-                    addDebugLog(`✗ データが抽出できませんでした`);
-                    addDebugLog(`\n【確認項目】`);
-                    addDebugLog(`1. ファイルにQA列が含まれていますか？`);
-                    addDebugLog(`2. ヘッダー行以降にデータが存在しますか？`);
-                    addDebugLog(`3. 日付列に日付が入力されていますか？`);
-                    addDebugLog(`4. 出社場所列に出社場所が入力されていますか？`);
+                if (sheetsInfo.length === 0) {
+                    addDebugLog('✗ 月・列が検出できませんでした');
                     if (updateStatus) {
                         updateStatus.style.color = '#ef4444';
-                        updateStatus.innerText = '❌ エラー: データが見つかりません (デバッグ情報を確認)';
+                        updateStatus.innerText = '❌ 月・列ヘッダーが見つかりません';
                     }
+                    return;
                 }
-            } catch (e) {
-                addDebugLog(`✗ エラーが発生しました: ${e.message}`);
-                addDebugLog(`スタック: ${e.stack}`);
+
+                pendingWorkbook = workbook;
+                pendingSheets = sheetsInfo;
+                showColumnPicker(sheetsInfo);
+
+                if (updateStatus) {
+                    updateStatus.style.color = 'var(--neon-cyan)';
+                    updateStatus.innerText = '📊 参照する列を選んでください';
+                }
+            } catch (err) {
+                addDebugLog(`✗ エラー: ${err.message}`);
                 if (updateStatus) {
                     updateStatus.style.color = '#ef4444';
-                    updateStatus.innerText = '❌ 解析に失敗しました: ' + e.message;
+                    updateStatus.innerText = '❌ 解析失敗: ' + err.message;
                 }
             }
         };
         reader.readAsArrayBuffer(file);
     });
+}
+
+function detectSheetsAndColumns(workbook) {
+    const results = [];
+
+    workbook.SheetNames.forEach(sheetName => {
+        const sheet = workbook.Sheets[sheetName];
+        const rows = window.XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", raw: false });
+
+        // ヘッダー行と列候補を探す
+        let columns = [];
+        let headerRowIdx = -1;
+        for (let r = 0; r < Math.min(15, rows.length); r++) {
+            if (!rows[r]) continue;
+            const candidates = [];
+            for (let c = 0; c < rows[r].length; c++) {
+                const val = String(rows[r][c]).trim();
+                if (!val || val.length <= 1 || val.length > 30) continue;
+                if (/^\d{1,2}[\/\-]\d{1,2}/.test(val) || /^\d{5,}/.test(val)) continue;
+                if (val.includes('エントリー') || val.includes('hr-dash') || val.includes('経験者')) {
+                    candidates.push(val);
+                }
+            }
+            if (candidates.length >= 2) {
+                columns = candidates;
+                headerRowIdx = r;
+                break;
+            }
+        }
+        if (columns.length === 0) return;
+
+        // 最初のデータ行から月を検出
+        let month = null;
+        for (let r = (headerRowIdx === -1 ? 0 : headerRowIdx) + 1; r < Math.min(rows.length, headerRowIdx + 15); r++) {
+            if (!rows[r]) continue;
+            for (let c = 0; c < Math.min(4, rows[r].length); c++) {
+                const d = parseExcelDate(String(rows[r][c]).trim());
+                if (d) { month = parseInt(d.split('-')[1]); break; }
+            }
+            if (month) break;
+        }
+        if (!month) return;
+
+        // 同じ月が既に追加されていなければ追加
+        if (!results.find(r => r.month === month)) {
+            results.push({ sheetName, month, columns });
+        }
+    });
+
+    return results.sort((a, b) => a.month - b.month);
+}
+
+function showColumnPicker(sheetsInfo) {
+    const container = document.getElementById('column-picker-rows');
+    container.innerHTML = '';
+
+    sheetsInfo.forEach(({ month, columns }) => {
+        const savedCol = columnByMonth[month] || columns[0];
+
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex; align-items:center; gap:0.8rem;';
+
+        const label = document.createElement('span');
+        label.style.cssText = 'min-width:3rem; font-weight:600; color:var(--text-main);';
+        label.textContent = `${month}月`;
+
+        const select = document.createElement('select');
+        select.dataset.month = month;
+        select.style.cssText = 'flex:1; padding:0.6rem; border-radius:6px; border:1px solid var(--border-subtle); background:var(--bg-main); color:var(--text-main); font-size:0.9rem; outline:none; cursor:pointer;';
+
+        columns.forEach(col => {
+            const opt = document.createElement('option');
+            opt.value = col;
+            opt.text = col;
+            if (col === savedCol) opt.selected = true;
+            select.appendChild(opt);
+        });
+
+        row.appendChild(label);
+        row.appendChild(select);
+        container.appendChild(row);
+    });
+
+    document.getElementById('column-picker-modal').classList.add('active');
+}
+
+function setupColumnPicker() {
+    document.getElementById('btn-column-cancel').onclick = () => {
+        document.getElementById('column-picker-modal').classList.remove('active');
+        pendingWorkbook = null;
+        pendingSheets = null;
+        const updateStatus = document.getElementById('update-status');
+        if (updateStatus) updateStatus.innerText = '';
+    };
+
+    document.getElementById('btn-column-confirm').onclick = () => {
+        document.querySelectorAll('#column-picker-rows select').forEach(sel => {
+            columnByMonth[parseInt(sel.dataset.month)] = sel.value;
+        });
+        localStorage.setItem('columnByMonth', JSON.stringify(columnByMonth));
+        updateColumnDisplay();
+        document.getElementById('column-picker-modal').classList.remove('active');
+        if (pendingWorkbook && pendingSheets) {
+            doImport(pendingWorkbook, pendingSheets);
+            pendingWorkbook = null;
+            pendingSheets = null;
+        }
+    };
+}
+
+function updateColumnDisplay() {
+    const el = document.getElementById('current-column-display');
+    if (!el) return;
+    const entries = Object.entries(columnByMonth).sort(([a], [b]) => parseInt(a) - parseInt(b));
+    el.innerText = entries.length > 0
+        ? entries.map(([m, col]) => `${m}月: ${col}`).join(' / ')
+        : '';
+}
+
+function doImport(workbook, sheetsInfo) {
+    const updateStatus = document.getElementById('update-status');
+    if (updateStatus) {
+        updateStatus.style.color = 'var(--neon-cyan)';
+        updateStatus.innerText = '📁 取り込み中...';
+    }
+
+    const newEntries = [];
+
+    sheetsInfo.forEach(({ sheetName, month }) => {
+        const targetCol = columnByMonth[month];
+        if (!targetCol) {
+            addDebugLog(`✗ ${month}月: 列設定なし → スキップ`);
+            return;
+        }
+
+        addDebugLog(`\n--- ${month}月 (${sheetName}): "${targetCol}" ---`);
+        const sheet = workbook.Sheets[sheetName];
+        const rows = window.XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", raw: false });
+
+        let targetColIdx = -1;
+        let dateColIdx = -1;
+        let headerRowIdx = -1;
+
+        // 列名と完全一致する列を探す
+        outer: for (let r = 0; r < Math.min(15, rows.length); r++) {
+            if (!rows[r]) continue;
+            for (let c = 0; c < rows[r].length; c++) {
+                if (String(rows[r][c]).trim() === targetCol) {
+                    targetColIdx = c;
+                    headerRowIdx = r;
+                    addDebugLog(`✓ 列${c}、ヘッダー行${r + 1}`);
+                    break outer;
+                }
+            }
+        }
+
+        if (targetColIdx === -1) {
+            addDebugLog(`✗ "${targetCol}" 列なし → スキップ`);
+            return;
+        }
+
+        // 日付列を検出
+        for (let r = headerRowIdx + 1; r < Math.min(headerRowIdx + 8, rows.length); r++) {
+            if (!rows[r]) continue;
+            for (let c = 0; c < Math.min(6, rows[r].length); c++) {
+                const val = String(rows[r][c]).trim();
+                if (/^\d{4,5}(\.\d+)?$/.test(val) || /^\d{1,2}[\/\-]\d{1,2}/.test(val)) {
+                    dateColIdx = c;
+                    addDebugLog(`✓ 日付列: 列${c}`);
+                    break;
+                }
+            }
+            if (dateColIdx !== -1) break;
+        }
+
+        if (dateColIdx === -1) {
+            addDebugLog(`✗ 日付列なし → スキップ`);
+            return;
+        }
+
+        let sheetRecords = 0;
+        for (let i = headerRowIdx + 1; i < rows.length; i++) {
+            const row = rows[i];
+            if (!row) continue;
+            const rawDate = String(row[dateColIdx] ?? '').trim();
+            if (!rawDate) continue;
+            const dateStr = parseExcelDate(rawDate);
+            if (!dateStr) continue;
+            const loc = String(row[targetColIdx] ?? '').trim();
+            if (loc) {
+                newEntries.push({ date: dateStr, location: loc });
+                sheetRecords++;
+            }
+        }
+        addDebugLog(`✓ 抽出: ${sheetRecords} 件`);
+    });
+
+    addDebugLog(`\n=== 今回取り込み: ${newEntries.length} 件 ===`);
+
+    if (newEntries.length > 0) {
+        // 既存データとマージ（同じ日付は上書き）
+        const existing = JSON.parse(localStorage.getItem('allSchedule') || '[]');
+        const byDate = {};
+        existing.forEach(item => { byDate[item.date] = item; });
+        newEntries.forEach(item => { byDate[item.date] = item; });
+        const merged = Object.values(byDate).sort((a, b) => a.date.localeCompare(b.date));
+
+        localStorage.setItem('allSchedule', JSON.stringify(merged));
+        localStorage.setItem('lastViewedMonth', currentMonth);
+        addDebugLog(`✓ 保存完了 (合計 ${merged.length} 件)`);
+        if (updateStatus) {
+            updateStatus.style.color = '#10b981';
+            updateStatus.innerText = `✅ 取り込み成功！(${newEntries.length} 件追加/更新)`;
+        }
+        setTimeout(() => window.location.reload(), 1500);
+    } else {
+        addDebugLog('✗ データなし');
+        if (updateStatus) {
+            updateStatus.style.color = '#ef4444';
+            updateStatus.innerText = '❌ データが見つかりません (デバッグ情報を確認)';
+        }
+    }
+}
+
+function parseExcelDate(raw) {
+    // Excelシリアル値 (40000〜60000 の整数)
+    if (/^\d{4,5}(\.\d+)?$/.test(raw)) {
+        const serial = parseFloat(raw);
+        if (serial > 40000 && serial < 60000) {
+            const dt = new Date((serial - 25567) * 86400000);
+            return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+        }
+    }
+    // YYYY/MM/DD または YYYY-MM-DD
+    let m = raw.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+    if (m) return `${m[1]}-${String(parseInt(m[2])).padStart(2, '0')}-${String(parseInt(m[3])).padStart(2, '0')}`;
+    // MM/DD/YYYY (XLSXが出力するUS形式)
+    m = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (m) return `${m[3]}-${String(parseInt(m[1])).padStart(2, '0')}-${String(parseInt(m[2])).padStart(2, '0')}`;
+    // MM/DD または MM-DD (曜日付きも対応)
+    m = raw.match(/^(\d{1,2})[\/\-](\d{1,2})/);
+    if (m) {
+        const month = parseInt(m[1]);
+        const year = month >= 10 ? 2025 : 2026;
+        return `${year}-${String(month).padStart(2, '0')}-${String(parseInt(m[2])).padStart(2, '0')}`;
+    }
+    return null;
 }
 
 // ========================
